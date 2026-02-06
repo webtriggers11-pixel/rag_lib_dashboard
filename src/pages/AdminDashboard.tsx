@@ -62,15 +62,7 @@ export default function AdminDashboard() {
     navigate('/login')
   }
 
-  if (loading) {
-    return (
-      <div className="app-main">
-        <p style={{ color: 'var(--text-muted)' }}>Loading admin dashboard…</p>
-      </div>
-    )
-  }
-
-  if (error) {
+  if (error && !loading) {
     return (
       <div className="app-main">
         <p className="error-msg">{error}</p>
@@ -97,7 +89,9 @@ export default function AdminDashboard() {
         <section className="dashboard-section">
           <p className="section-label">Organizations</p>
           <h2>All orgs</h2>
-          {orgs.length === 0 ? (
+          {loading ? (
+            <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+          ) : orgs.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>No organizations yet. Create one below.</p>
           ) : (
             <ul className="uploads-list org-list-clickable">

@@ -38,21 +38,17 @@ export default function VectorStore() {
       .finally(() => setLoading(false))
   }, [navigate])
 
-  if (loading || !user) {
-    return (
-      <div className="app-main">
-        <p style={{ color: 'var(--text-muted)' }}>Loading PG Vector…</p>
-      </div>
-    )
-  }
-
-  if (error) {
+  if (error && !loading) {
     return (
       <div className="app-main">
         <p className="error-msg">{error}</p>
         <button className="secondary" onClick={() => navigate('/')}>Back to dashboard</button>
       </div>
     )
+  }
+
+  if (!user && !loading) {
+    return null
   }
 
   return (
@@ -68,14 +64,16 @@ export default function VectorStore() {
       <main className="app-main">
         <section className="dashboard-section">
           <p className="section-label">Stats</p>
-          <h2>Collection: {data?.collection_name ?? '—'}</h2>
+          <h2>Collection: {loading ? '—' : (data?.collection_name ?? '—')}</h2>
           <p style={{ color: 'var(--text-muted)' }}>
-            Total embeddings: <strong>{data?.total_embeddings ?? 0}</strong>
+            Total embeddings: <strong>{loading ? '—' : (data?.total_embeddings ?? 0)}</strong>
           </p>
         </section>
         <section className="dashboard-section">
           <p className="section-label">Recent chunks (up to 100)</p>
-          {data?.recent?.length ? (
+          {loading ? (
+            <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+          ) : data?.recent?.length ? (
             <ul className="uploads-list" style={{ maxHeight: '60vh', overflow: 'auto' }}>
               {data.recent.map((r) => (
                 <li key={r.id} className="card" style={{ padding: '1rem', marginBottom: '0.5rem' }}>

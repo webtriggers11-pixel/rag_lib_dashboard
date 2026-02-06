@@ -72,6 +72,9 @@ export interface Org {
   id: string;
   name: string;
   created_at: string | null;
+  max_pdfs?: number;
+  max_chars?: number;
+  upload_enabled?: boolean;
 }
 
 export interface Upload {
@@ -118,6 +121,15 @@ export interface OrgDetailResponse extends Org {
   uploads: Upload[];
   upload_count: number;
   custom_prompt?: string | null;
+  max_pdfs?: number;
+  max_chars?: number;
+  upload_enabled?: boolean;
+}
+
+export interface SetOrgLimitsRequest {
+  max_pdfs?: number;
+  max_chars?: number;
+  upload_enabled?: boolean;
 }
 
 export function adminGetOrg(orgId: string): Promise<OrgDetailResponse> {
@@ -130,6 +142,10 @@ export function getDefaultPrompt(): Promise<{ content: string }> {
 
 export function setOrgPrompt(orgId: string, content: string | null): Promise<{ ok: boolean }> {
   return api.put<{ ok: boolean }>(`/admin/orgs/${orgId}/prompt`, { content: content ?? null }).then(data);
+}
+
+export function setOrgLimits(orgId: string, limits: SetOrgLimitsRequest): Promise<{ ok: boolean }> {
+  return api.put<{ ok: boolean }>(`/admin/orgs/${orgId}/limits`, limits).then(data);
 }
 
 export function registerOrgUser(name: string, email: string, password: string): Promise<LoginResponse> {

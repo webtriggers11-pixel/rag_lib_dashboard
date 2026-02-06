@@ -106,18 +106,19 @@ export default function Dashboard() {
     navigate('/login')
   }
 
-  if (loading) {
+  if (error && !loading) {
     return (
       <div className="app-main">
-        <p style={{ color: 'var(--text-muted)' }}>Loading dashboard…</p>
+        <p className="error-msg">{error}</p>
+        <button className="secondary" onClick={() => navigate('/login')}>Back to login</button>
       </div>
     )
   }
 
-  if (error || !org) {
+  if (!loading && !org) {
     return (
       <div className="app-main">
-        <p className="error-msg">{error || 'Organization not found.'}</p>
+        <p className="error-msg">Organization not found.</p>
         <button className="secondary" onClick={() => navigate('/login')}>Back to login</button>
       </div>
     )
@@ -128,7 +129,7 @@ export default function Dashboard() {
       <header className="app-header">
         <h1>RAG Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{org.name}</span>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{org?.name ?? '—'}</span>
           <button type="button" className="secondary" onClick={handleLogout}>
             Sign out
           </button>
@@ -137,11 +138,11 @@ export default function Dashboard() {
       <main className="app-main">
         <section className="dashboard-section">
           <p className="section-label">Your organization</p>
-          <h2>{org.name}</h2>
+          <h2>{org?.name ?? '—'}</h2>
           <div className="stats-row">
             <div className="stat-item">
-              <span className="stat-value">{uploads.length}</span>
-              <span className="stat-label">Documents uploaded</span>
+              <span className="stat-value">{loading ? '—' : uploads.length}</span>
+              <span className="stat-label">Documents uploaded{org?.max_pdfs != null ? ` (max ${org.max_pdfs})` : ''}</span>
             </div>
           </div>
         </section>
@@ -152,16 +153,20 @@ export default function Dashboard() {
           <div className="rag-actions">
             <div className="card">
               <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Upload PDF</h3>
+              {org?.upload_enabled === false && (
+                <p className="error-msg" style={{ marginBottom: '1rem' }}>Uploads are disabled for your organization.</p>
+              )}
               <form onSubmit={handleUpload} className="rag-box">
                 <div className="upload-area">
                   <input
                     type="file"
                     accept=".pdf"
                     onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                    disabled={org?.upload_enabled === false}
                   />
                   {uploadFile && <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)' }}>{uploadFile.name}</p>}
                 </div>
-                <button type="submit" className="primary" disabled={!uploadFile || uploadLoading}>
+                <button type="submit" className="primary" disabled={!uploadFile || uploadLoading || !org || org.upload_enabled === false}>
                   {uploadLoading ? 'Uploading…' : 'Upload'}
                 </button>
                 {uploadStatus && (
@@ -181,7 +186,7 @@ export default function Dashboard() {
                   rows={3}
                   disabled={queryLoading}
                 />
-                <button type="submit" className="primary" disabled={queryLoading || !question.trim()}>
+                <button type="submit" className="primary" disabled={queryLoading || !question.trim() || !org}>
                   {queryLoading ? 'Asking…' : 'Ask'}
                 </button>
                 {queryError && <p className="error-msg">{queryError}</p>}
@@ -195,16 +200,16 @@ export default function Dashboard() {
           <p className="section-label">API Keys</p>
           <h2>Chat UI / embed</h2>
           <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-            Create an API key to use the chat UI on your site. Max 3 keys per org.
+            Create an API key to use the chat UI on your site. Only one key active per org; creating a new one revokes the old.
           </p>
           <div className="card">
             <button
               type="button"
               className="primary"
               onClick={handleCreateApiKey}
-              disabled={apiKeyLoading || apiKeys.length >= 3}
+              disabled={apiKeyLoading || !org}
             >
-              {apiKeyLoading ? 'Creating…' : apiKeys.length >= 3 ? 'Max 3 keys' : 'Create API key'}
+              {apiKeyLoading ? 'Creating…' : 'Create API key'}
             </button>
             {newApiKey && (
               <div className="card" style={{ marginTop: '1rem' }}>

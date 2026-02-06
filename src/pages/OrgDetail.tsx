@@ -5,6 +5,7 @@ import {
   createOrgApiKey,
   getDefaultPrompt,
   listOrgApiKeys,
+  setOrgLimits,
   setOrgPrompt,
   setToken,
   getToken,
@@ -27,6 +28,11 @@ export default function OrgDetail() {
   const [apiKeys, setApiKeys] = useState<ApiKeyInfo[]>([])
   const [newApiKey, setNewApiKey] = useState<string | null>(null)
   const [apiKeyLoading, setApiKeyLoading] = useState(false)
+  const [limitsMaxPdfs, setLimitsMaxPdfs] = useState<string>('')
+  const [limitsMaxChars, setLimitsMaxChars] = useState<string>('')
+  const [limitsUploadEnabled, setLimitsUploadEnabled] = useState<boolean>(true)
+  const [limitsStatus, setLimitsStatus] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
+  const [limitsLoading, setLimitsLoading] = useState(false)
 
   useEffect(() => {
     if (!getToken() || !orgId) {
@@ -40,6 +46,9 @@ export default function OrgDetail() {
         setDefaultPrompt(promptData.content)
         setCustomPromptInput(orgData.custom_prompt ?? '')
         setApiKeys(keysData.api_keys)
+        setLimitsMaxPdfs(String(orgData.max_pdfs ?? ''))
+        setLimitsMaxChars(String(orgData.max_chars ?? ''))
+        setLimitsUploadEnabled(orgData.upload_enabled ?? true)
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Failed to load org')
@@ -101,6 +110,30 @@ export default function OrgDetail() {
     }
   }
 
+  async function handleSetOrgLimits(e: React.FormEvent) {
+    e.preventDefault()
+    if (!orgId) return
+    setLimitsStatus(null)
+    setLimitsLoading(true)
+    try {
+      await setOrgLimits(orgId, {
+        max_pdfs: limitsMaxPdfs.trim() ? parseInt(limitsMaxPdfs, 10) : undefined,
+        max_chars: limitsMaxChars.trim() ? parseInt(limitsMaxChars, 10) : undefined,
+        upload_enabled: limitsUploadEnabled,
+      })
+      setLimitsStatus({ type: 'ok', msg: 'Limits saved.' })
+      const orgData = await adminGetOrg(orgId)
+      setOrg(orgData)
+      setLimitsMaxPdfs(String(orgData.max_pdfs ?? ''))
+      setLimitsMaxChars(String(orgData.max_chars ?? ''))
+      setLimitsUploadEnabled(orgData.upload_enabled ?? true)
+    } catch (err) {
+      setLimitsStatus({ type: 'err', msg: err instanceof Error ? err.message : 'Failed to save limits' })
+    } finally {
+      setLimitsLoading(false)
+    }
+  }
+
   function handleBack() {
     navigate('/')
   }
@@ -110,29 +143,30 @@ export default function OrgDetail() {
     navigate('/login')
   }
 
-  if (loading) {
+  if (error && !loading) {
     return (
       <div className="app-main">
-        <p style={{ color: 'var(--text-muted)' }}>Loading org details…</p>
-      </div>
-    )
-  }
-
-  if (error || !org) {
-    return (
-      <div className="app-main">
-        <p className="error-msg">{error || 'Org not found.'}</p>
+        <p className="error-msg">{error}</p>
         <button className="secondary" onClick={handleBack}>Back to dashboard</button>
       </div>
     )
   }
 
-  const hasCustomPrompt = org.custom_prompt != null && org.custom_prompt.trim() !== ''
+  if (!loading && !org) {
+    return (
+      <div className="app-main">
+        <p className="error-msg">Org not found.</p>
+        <button className="secondary" onClick={handleBack}>Back to dashboard</button>
+      </div>
+    )
+  }
+
+  const hasCustomPrompt = org?.custom_prompt != null && org?.custom_prompt.trim() !== ''
 
   return (
     <>
       <header className="app-header">
-        <h1>Org: {org.name}</h1>
+        <h1>Org: {org?.name ?? '—'}</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button type="button" className="secondary" onClick={handleBack}>
             Back to dashboard
@@ -145,13 +179,13 @@ export default function OrgDetail() {
       <main className="app-main">
         <section className="dashboard-section">
           <p className="section-label">Organization</p>
-          <h2>{org.name}</h2>
+          <h2>{org?.name ?? '—'}</h2>
           <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-            ID: {org.id} · Created: {org.created_at ? new Date(org.created_at).toLocaleString() : '—'}
+            ID: {org?.id ?? '—'} · Created: {org?.created_at ? new Date(org.created_at).toLocaleString() : '—'}
           </p>
           <div className="stats-row">
             <div className="stat-item">
-              <span className="stat-value">{org.upload_count}</span>
+              <span className="stat-value">{loading ? '—' : (org?.upload_count ?? 0)}</span>
               <span className="stat-label">Documents uploaded</span>
             </div>
           </div>
@@ -171,7 +205,7 @@ export default function OrgDetail() {
           {hasCustomPrompt && (
             <div className="card prompt-box important-prompt">
               <span className="important-badge">Important</span>
-              <pre className="prompt-content">{org.custom_prompt}</pre>
+              <pre className="prompt-content">{org?.custom_prompt}</pre>
               <button
                 type="button"
                 className="secondary"
@@ -214,19 +248,40 @@ export default function OrgDetail() {
         </section>
 
         <section className="dashboard-section">
+          <p className="section-label">Upload limits</p>
+          <h2>Max PDFs, max chars, disable upload</h2>
+          <div className="card">
+            <form onSubmit={handleSetOrgLimits} className="rag-box">
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                Max PDFs per org (default from server): <input type="number" min={0} value={limitsMaxPdfs} onChange={(e) => setLimitsMaxPdfs(e.target.value)} placeholder="e.g. 100" style={{ width: '8rem', marginLeft: '0.5rem' }} />
+              </label>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                Max characters per PDF (default from server): <input type="number" min={0} value={limitsMaxChars} onChange={(e) => setLimitsMaxChars(e.target.value)} placeholder="e.g. 5000000" style={{ width: '10rem', marginLeft: '0.5rem' }} />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <input type="checkbox" checked={limitsUploadEnabled} onChange={(e) => setLimitsUploadEnabled(e.target.checked)} />
+                Upload enabled
+              </label>
+              <button type="submit" className="primary" disabled={limitsLoading}>{limitsLoading ? 'Saving…' : 'Save limits'}</button>
+              {limitsStatus && <p className={limitsStatus.type === 'ok' ? 'success-msg' : 'error-msg'} style={{ marginTop: '0.5rem' }}>{limitsStatus.msg}</p>}
+            </form>
+          </div>
+        </section>
+
+        <section className="dashboard-section">
           <p className="section-label">API Keys</p>
           <h2>Chat UI / embed</h2>
           <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-            Create an API key for this org. Use it in the chat UI lib so end users can ask questions against this org&apos;s documents. Max 3 per org.
+            Create an API key for this org. Only one key active; creating a new one revokes the old.
           </p>
           <div className="card">
             <button
               type="button"
               className="primary"
               onClick={handleCreateApiKey}
-              disabled={apiKeyLoading || apiKeys.length >= 3}
+              disabled={apiKeyLoading || !org}
             >
-              {apiKeyLoading ? 'Creating…' : apiKeys.length >= 3 ? 'Max 3 keys' : 'Create API key'}
+              {apiKeyLoading ? 'Creating…' : 'Create API key'}
             </button>
             {newApiKey && (
               <div className="card" style={{ marginTop: '1rem' }}>
@@ -258,11 +313,13 @@ export default function OrgDetail() {
         <section className="dashboard-section">
           <p className="section-label">Documents</p>
           <h2>Upload list</h2>
-          {org.uploads.length === 0 ? (
+          {loading ? (
+            <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+          ) : (org?.uploads?.length ?? 0) === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>No documents yet.</p>
           ) : (
             <ul className="uploads-list">
-              {(org.uploads as Upload[]).map((u) => (
+              {((org?.uploads ?? []) as Upload[]).map((u) => (
                 <li key={u.id}>
                   <span className="filename">{u.filename}</span>
                   <span className="date">{u.created_at ? new Date(u.created_at).toLocaleString() : '—'}</span>
