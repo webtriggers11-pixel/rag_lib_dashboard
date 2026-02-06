@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
@@ -55,6 +56,7 @@ export default function Dashboard() {
     e.preventDefault()
     if (!org || !uploadFile) return
     setUploadStatus(null)
+    setUploadLoading(true)
     try {
       const res = await uploadPdf(org.id, uploadFile)
       setUploadStatus({ type: 'ok', msg: `${res.message} (${res.chunks_stored} chunks)` })
@@ -63,6 +65,8 @@ export default function Dashboard() {
       setUploads(data.uploads)
     } catch (err) {
       setUploadStatus({ type: 'err', msg: err instanceof Error ? err.message : 'Upload failed' })
+    } finally {
+      setUploadLoading(false)
     }
   }
 
@@ -157,8 +161,8 @@ export default function Dashboard() {
                   />
                   {uploadFile && <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)' }}>{uploadFile.name}</p>}
                 </div>
-                <button type="submit" className="primary" disabled={!uploadFile}>
-                  Upload
+                <button type="submit" className="primary" disabled={!uploadFile || uploadLoading}>
+                  {uploadLoading ? 'Uploading…' : 'Upload'}
                 </button>
                 {uploadStatus && (
                   <p className={uploadStatus.type === 'ok' ? 'success-msg' : 'error-msg'}>

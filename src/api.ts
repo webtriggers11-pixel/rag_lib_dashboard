@@ -144,7 +144,11 @@ export interface UploadResponse {
 export function uploadPdf(orgId: string, file: File): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
-  return api.post<UploadResponse>(`/orgs/${orgId}/rag/upload`, form).then(data);
+  return api
+    .post<UploadResponse>(`/orgs/${orgId}/rag/upload`, form, {
+      headers: { 'Content-Type': undefined },
+    } as InternalAxiosRequestConfig)
+    .then(data);
 }
 
 export interface QueryResponse {

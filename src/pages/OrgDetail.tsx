@@ -23,6 +23,7 @@ export default function OrgDetail() {
   const [error, setError] = useState('')
   const [customPromptInput, setCustomPromptInput] = useState('')
   const [promptStatus, setPromptStatus] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
+  const [promptLoading, setPromptLoading] = useState(false)
   const [apiKeys, setApiKeys] = useState<ApiKeyInfo[]>([])
   const [newApiKey, setNewApiKey] = useState<string | null>(null)
   const [apiKeyLoading, setApiKeyLoading] = useState(false)
@@ -72,18 +73,22 @@ export default function OrgDetail() {
     e.preventDefault()
     if (!orgId) return
     setPromptStatus(null)
+    setPromptLoading(true)
     try {
       await setOrgPrompt(orgId, customPromptInput.trim() || null)
       setPromptStatus({ type: 'ok', msg: 'Org prompt saved.' })
       setOrg((prev) => (prev ? { ...prev, custom_prompt: customPromptInput.trim() || null } : null))
     } catch (err) {
       setPromptStatus({ type: 'err', msg: err instanceof Error ? err.message : 'Failed to save' })
+    } finally {
+      setPromptLoading(false)
     }
   }
 
   async function handleDeleteOrgPrompt() {
     if (!orgId) return
     setPromptStatus(null)
+    setPromptLoading(true)
     try {
       await setOrgPrompt(orgId, null)
       setCustomPromptInput('')
@@ -91,6 +96,8 @@ export default function OrgDetail() {
       setPromptStatus({ type: 'ok', msg: 'Custom org prompt deleted.' })
     } catch (err) {
       setPromptStatus({ type: 'err', msg: err instanceof Error ? err.message : 'Failed to delete' })
+    } finally {
+      setPromptLoading(false)
     }
   }
 
@@ -170,8 +177,9 @@ export default function OrgDetail() {
                 className="secondary"
                 style={{ marginTop: '0.75rem' }}
                 onClick={handleDeleteOrgPrompt}
+                disabled={promptLoading}
               >
-                Delete custom org prompt
+                {promptLoading ? 'Deleting…' : 'Delete custom org prompt'}
               </button>
             </div>
           )}
@@ -184,14 +192,17 @@ export default function OrgDetail() {
                 rows={4}
               />
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button type="submit" className="primary">Save org prompt</button>
+                <button type="submit" className="primary" disabled={promptLoading}>
+                  {promptLoading ? 'Saving…' : 'Save org prompt'}
+                </button>
                 {(hasCustomPrompt || customPromptInput.trim()) && (
                   <button
                     type="button"
                     className="secondary"
                     onClick={handleDeleteOrgPrompt}
+                    disabled={promptLoading}
                   >
-                    Clear / delete custom prompt
+                    {promptLoading ? 'Clearing…' : 'Clear / delete custom prompt'}
                   </button>
                 )}
               </div>

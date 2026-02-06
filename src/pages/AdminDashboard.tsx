@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   const [regEmail, setRegEmail] = useState('')
   const [regPassword, setRegPassword] = useState('')
   const [regStatus, setRegStatus] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
+  const [regLoading, setRegLoading] = useState(false)
 
   useEffect(() => {
     if (!getToken()) {
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
     e.preventDefault()
     if (!regOrgName.trim() || !regEmail.trim() || !regPassword) return
     setRegStatus(null)
+    setRegLoading(true)
     try {
       await registerOrgUser(regOrgName.trim(), regEmail.trim(), regPassword)
       setRegStatus({ type: 'ok', msg: 'Org and user created. They can log in with that email and password.' })
@@ -50,6 +52,8 @@ export default function AdminDashboard() {
       setOrgs(data.orgs)
     } catch (err) {
       setRegStatus({ type: 'err', msg: err instanceof Error ? err.message : 'Failed to register org user' })
+    } finally {
+      setRegLoading(false)
     }
   }
 
@@ -131,7 +135,9 @@ export default function AdminDashboard() {
                 minLength={8}
                 required
               />
-              <button type="submit" className="primary">Create org & user</button>
+              <button type="submit" className="primary" disabled={regLoading}>
+                {regLoading ? 'Creating…' : 'Create org & user'}
+              </button>
               {regStatus && (
                 <p className={regStatus.type === 'ok' ? 'success-msg' : 'error-msg'}>{regStatus.msg}</p>
               )}
