@@ -190,3 +190,19 @@ export function orgCreateApiKey(): Promise<CreateApiKeyResponse> {
 export function orgListApiKeys(): Promise<ListApiKeysResponse> {
   return api.get<ListApiKeysResponse>('/org/api-keys').then(data);
 }
+
+export interface VectorStoreEmbedding {
+  id: string;
+  document_preview: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface VectorStoreResponse {
+  collection_name: string;
+  total_embeddings: number;
+  recent: VectorStoreEmbedding[];
+}
+
+export function getVectorStore(): Promise<VectorStoreResponse> {
+  return api.get<VectorStoreResponse>('/admin/vector').then(data);
+}

@@ -84,6 +84,9 @@ export default function AdminDashboard() {
       <header className="app-header">
         <h1>Admin Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button type="button" className="secondary" onClick={() => navigate('/admin/vector')}>
+            PG Vector
+          </button>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Admin</span>
           <button type="button" className="secondary" onClick={handleLogout}>
             Sign out

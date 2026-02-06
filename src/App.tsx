@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import OrgDetail from './pages/OrgDetail'
+import VectorStore from './pages/VectorStore'
 import './App.css'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -48,6 +49,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/org/:orgId" element={<ProtectedRoute><OrgDetail /></ProtectedRoute>} />
+          <Route path="/admin/vector" element={<ProtectedRoute><VectorStore /></ProtectedRoute>} />
           <Route
             path="/"
             element={
